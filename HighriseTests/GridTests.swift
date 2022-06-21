@@ -37,16 +37,95 @@ class GridTests: XCTestCase {
         XCTAssertEqual(sut.takenCells.values.filter { $0.count == 2 }.count, 2)
         XCTAssertEqual(sut.takenCells.values.filter { $0.count == 1 }.count, 1)
     }
-    func test_gridTwoSameColorOneBlockCells_willMergeInTwoCells() {
+    func test_gridTwoSameColorOneBlockCellsAfterIteration_willMergeInTwoCells() {
         let sut = makeSUT()
 
         sut.takenCells = [Position(x: 0, y: 0): [.yellow],
                           Position(x: 0, y: 1): [.yellow]]
         sut.iterate()
-
-        XCTAssertEqual(sut.takenCells, [Position(x: 0, y: 0): [.yellow, .yellow]])
+        
+        XCTAssertEqual(
+            sut.takenCells, [
+                Position(x: 0, y: 0): [.yellow, .yellow],
+                Position(x: 0, y: 1): []
+            ]
+        )
     }
     
+    func test_gridNewlyPlacedBlockNearSameBlock_willMergeNewBlockInExistingBlock() {
+        let sut = makeSUT()
+        
+        sut.takenCells = [Position(x: 0, y: 0): [],
+                          Position(x: 0, y: 1): [.yellow]]
+        sut.put([.yellow], in: Position(x: 0, y: 0))
+        
+        XCTAssertEqual(
+            sut.takenCells, [
+                Position(x: 0, y: 0): [],
+                Position(x: 0, y: 1): [.yellow, .yellow]
+            ]
+        )
+    }
+    
+    func test_gridNewlyPlacedBlockNearDifferentBlock_willNotMergeNewBlockInExistingBlock() {
+        let sut = makeSUT()
+        
+        sut.takenCells = [Position(x: 0, y: 0): [],
+                          Position(x: 0, y: 1): [.yellow]]
+        sut.put([.red], in: Position(x: 0, y: 0))
+        
+        XCTAssertEqual(sut.takenCells, [Position(x: 0, y: 0): [.red], Position(x: 0, y: 1): [.yellow]])
+    }
+    
+    func test_gridNewlyPlacesTwoHeightBlockNearSameBlock_willMergeItInExistingBlockAndHeightWillBeThree() {
+        let sut = makeSUT()
+        
+        sut.takenCells = [Position(x: 0, y: 0): [],
+                          Position(x: 0, y: 1): [.yellow, .yellow]]
+        sut.put([.yellow, .yellow], in: Position(x: 0, y: 0))
+        
+        XCTAssertEqual(
+            sut.takenCells, [
+                Position(x: 0, y: 0): [],
+                Position(x: 0, y: 1): [.yellow, .yellow, .yellow]
+            ]
+        )
+    }
+    
+    func test_gridNewBlockPlacedBetweenTwoSameBlocks_willCreateThreeHeightBlockOnThatPosition() {
+        let sut = makeSUT()
+        
+        sut.takenCells = [Position(x: 0, y: 0): [.yellow],
+                          Position(x: 0, y: 1): [],
+                          Position(x: 0, y: 2): [.yellow]]
+        sut.put([.yellow], in: Position(x: 0, y: 1))
+        
+        XCTAssertEqual(
+            sut.takenCells, [
+                Position(x: 0, y: 0): [],
+                Position(x: 0, y: 1): [.yellow, .yellow, .yellow],
+                Position(x: 0, y: 2): []
+            ]
+        )
+    }
+    
+    func test_gridNewBlockPlacedWithOneSameNeighborAndOneDifferentNeighbor_willBeMergedInSameBlock() {
+        let sut = makeSUT()
+        
+        sut.takenCells = [Position(x: 0, y: 0): [.yellow],
+                          Position(x: 0, y: 1): [],
+                          Position(x: 0, y: 2): [.red]]
+        sut.put([.yellow], in: Position(x: 0, y: 1))
+        
+        XCTAssertEqual(
+            sut.takenCells, [
+                Position(x: 0, y: 0): [.yellow, .yellow],
+                Position(x: 0, y: 1): [],
+                Position(x: 0, y: 2): [.red]
+            ]
+        )
+    }
+
     private func makeSUT(side: Int = 5) -> Grid {
         Grid(side: side)
     }

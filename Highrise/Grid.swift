@@ -10,6 +10,7 @@ import Foundation
 class Grid {
     private static let kInitiallyTakenCells = 3
     var takenCells: [Position: [HRColor]]
+    var _new: [Position: [HRColor]] = [:]
     let side: Int
     init(side: Int = 0) {
         self.side = side
@@ -27,16 +28,41 @@ class Grid {
     }
 
     func iterate() {
-        let copy = takenCells
+        let copy = takenCells.keys.sorted(by: { ($0.x + $0.y) < ($1.x + $1.y) })
         for pos in copy {
-            for neighbor in pos.key.neighbors {
-                guard takenCells.keys.contains(neighbor) else { continue }
-                if pos.value[0] == takenCells[neighbor]![0] {
-                    takenCells[pos.key] = [pos.value[0], pos.value[0]]
-                    takenCells.removeValue(forKey: neighbor)
+            guard takenCells.keys.contains(pos) else { continue }
+            guard let value = takenCells[pos] else { continue }
+            for neighbor in pos.neighbors {
+                guard let neighborValue = takenCells[neighbor] else { continue }
+                guard value == neighborValue else { continue }
+                let activeNeighbors = takenCells.activeValues(for: pos)
+                let activePositions = takenCells.activePositions(for: pos)
+
+                if activeNeighbors.count == 1 && takenCells.activeValues(for: neighbor).count == 1 {
+                    if value == _new[pos] {
+                        takenCells[neighbor] = neighborValue + [value[0]]
+                        takenCells[pos] = []
+                    } else {
+                        takenCells[pos] = value + [neighborValue[0]]
+                        takenCells[neighbor] = []
+                    }
+                } else if activeNeighbors.count == 2 {
+                    takenCells[pos] = Array(repeating: value[0], count: activeNeighbors.count + 1)
+                    for activePos in activePositions {
+                        takenCells[activePos] = []
+                    }
                 }
             }
         }
+        _new.removeAll()
+        print(takenCells)
+    }
+    
+    func put(_ value: [HRColor], in position: Position) {
+        guard takenCells[position] == [] else { return }
+        takenCells[position] = value
+        _new[position] = value
+        iterate()
     }
 
     private static func createUniquePos(for cells: [Position:[HRColor]], size: Int) -> Position {
@@ -48,7 +74,7 @@ class Grid {
     }
 }
 
-enum HRColor: CaseIterable {
+enum HRColor: CaseIterable, CustomStringConvertible {
     case yellow
     case red
     case blue
@@ -59,9 +85,22 @@ enum HRColor: CaseIterable {
             HRColor.allCases[Int.random(in: 0..<HRColor.allCases.count)]
         }
     }
+    var description: String {
+        switch self {
+        case .yellow:
+            return "🟨"
+        case .red:
+            return "🟥"
+        case .blue:
+            return "🟦"
+        case .green:
+            return "🟩"
+        }
+    }
 }
 
-struct Position: Hashable {
+struct Position: Hashable, CustomStringConvertible {
+    
     let x: Int
     let y: Int
 
@@ -80,5 +119,32 @@ struct Position: Hashable {
             }
         }
 //        [.init(x: 0, y: 1), .init(x: 1, y: 0)]
+    }
+    
+    var description: String {
+        "[\(x), \(y)]"
+    }
+}
+
+extension Dictionary where Key == Position, Value == [HRColor] {
+    func activePositions(for pos: Position) -> [Position] {
+        filter {
+            pos.neighbors.contains($0.key)
+        }.filter {
+            $0.value == self[pos]
+        }.map {
+            $0.key
+        }
+    
+    }
+
+    func activeValues(for pos: Position) -> [[HRColor]] {
+        filter {
+            pos.neighbors.contains($0.key)
+        }.filter {
+            $0.value == self[pos]
+        }.map {
+            $0.value
+        }
     }
 }
