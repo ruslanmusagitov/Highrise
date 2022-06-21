@@ -35,21 +35,20 @@ class Grid {
             for neighbor in pos.neighbors {
                 guard let neighborValue = takenCells[neighbor] else { continue }
                 guard value == neighborValue else { continue }
-                let activeNeighbors = takenCells.activeValues(for: pos)
-                let activePositions = takenCells.activePositions(for: pos)
 
-                if activeNeighbors.count == 1 && takenCells.activeValues(for: neighbor).count == 1 {
-                    if value == _new[pos] {
-                        takenCells[neighbor] = neighborValue + [value[0]]
-                        takenCells[pos] = []
-                    } else {
-                        takenCells[pos] = value + [neighborValue[0]]
-                        takenCells[neighbor] = []
-                    }
-                } else if activeNeighbors.count == 2 {
-                    takenCells[pos] = Array(repeating: value[0], count: activeNeighbors.count + 1)
-                    for activePos in activePositions {
-                        takenCells[activePos] = []
+                let neighborValues = takenCells.activeValues(for: pos)
+                let neighborPositions = takenCells.activePositions(for: pos)
+
+                if neighborValues.count == 1 && takenCells.activeValues(for: neighbor).count == 1 {
+                    let nonEmptyPos: Position = value == _new[pos] ? neighbor : pos
+                    let emptyPos: Position = value == _new[pos] ? pos : neighbor
+                    takenCells[emptyPos] = []
+                    let valuesCount = (takenCells[nonEmptyPos]?.count ?? 0)
+                    takenCells[nonEmptyPos] = Array(repeating: value[0], count: valuesCount + 1)
+                } else if neighborValues.count == 2 {
+                    takenCells[pos] = Array(repeating: value[0], count: neighborValues.count + 1)
+                    for neighborPos in neighborPositions {
+                        takenCells[neighborPos] = []
                     }
                 }
             }
